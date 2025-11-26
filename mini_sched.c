@@ -179,12 +179,18 @@ int global_mini_sched(int argc, char *argv[], struct job_time jobs_time[], sched
     else if(sched_type == SCHED_FIFO) {
         // FIFO: Wait for each job sequentially in order
         for (int i = 0; i < process_counter; i++) {
+            // Record start time: first job starts immediately, others start when previous finishes
+            if (i == 0) {
+                clock_gettime(CLOCK_REALTIME, &jobs_time[i].start);
+            } else {
+                jobs_time[i].start = jobs_time[i-1].end;  // Start when previous job finished
+            }
+            
             waitpid(jobs_pids[i], &status, 0);
             
             clock_gettime(CLOCK_REALTIME, &jobs_time[i].end);
             
             jobs_statuses[i] = status;
-            jobs_time[i].start = submission_time[i];  // For FIFO, start time = submission time
             jobs_time[i].response_seconds = calculate_response(jobs_time[i].start, submission_time[i]);
             jobs_time[i].turnaround_seconds = calculate_turnaround(jobs_time[i].end, submission_time[i]);
         }
